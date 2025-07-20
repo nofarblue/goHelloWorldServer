@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"regexp"
+	"strings"
 	"syscall"
 	"time"
 
@@ -15,14 +17,34 @@ import (
 func handler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	name := query.Get("name")
-	log.Printf("Received request for %s\n", name)
+	
+	// Sanitize name for logging by removing control characters
+	controlCharsRegex := regexp.MustCompile(`[\x00-\x1F\x7F]`)
+	sanitizedName := controlCharsRegex.ReplaceAllString(name, " ")
+	
+	log.Printf("Received request for %s\n", sanitizedName)
 	w.Write([]byte(CreateGreeting(name)))
 }
 
 func CreateGreeting(name string) string {
+	// Trim leading and trailing whitespace
+	name = strings.TrimSpace(name)
+	
+	// Return "Hello, Guest" if input is empty after trim
 	if name == "" {
-		name = "Guest"
+		return "Hello, Guest\n"
 	}
+	
+	// Limit accepted name length to 100 characters
+	if len(name) > 100 {
+		name = name[:100]
+	}
+	
+	// Strip newline and control characters, replace with space
+	// This regex matches control characters (ASCII 0-31) except space (32)
+	controlCharsRegex := regexp.MustCompile(`[\x00-\x1F\x7F]`)
+	name = controlCharsRegex.ReplaceAllString(name, " ")
+	
 	return "Hello, " + name + "\n"
 }
 
