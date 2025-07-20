@@ -19,6 +19,12 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(CreateGreeting(name)))
 }
 
+func healthzHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("Health check request received")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK\n"))
+}
+
 func CreateGreeting(name string) string {
 	if name == "" {
 		name = "Guest"
@@ -31,6 +37,7 @@ func main() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/", handler)
+	r.HandleFunc("/healthz", healthzHandler)
 
 	srv := &http.Server{
 		Handler:      r,
