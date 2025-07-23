@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
+	"unicode"
 
 	"github.com/gorilla/mux"
 )
@@ -15,15 +17,48 @@ import (
 func handler(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	name := query.Get("name")
-	log.Printf("Received request for %s\n", name)
+	// Sanitize name for logging by removing control characters
+	sanitizedName := sanitizeForLogging(name)
+	log.Printf("Received request for %s\n", sanitizedName)
 	w.Write([]byte(CreateGreeting(name)))
 }
 
 func CreateGreeting(name string) string {
+	// Trim leading and trailing whitespace
+	name = strings.TrimSpace(name)
+	
+	// Return "Hello, Guest" if input is empty after trim
 	if name == "" {
-		name = "Guest"
+		return "Hello, Guest\n"
 	}
+	
+	// Limit name length to 100 characters
+	if len(name) > 100 {
+		name = name[:100]
+	}
+	
+	// Strip control characters (including newlines)
+	name = sanitizeControlChars(name)
+	
 	return "Hello, " + name + "\n"
+}
+
+// sanitizeControlChars removes or replaces control characters from input
+func sanitizeControlChars(s string) string {
+	return strings.Map(func(r rune) rune {
+		if unicode.IsControl(r) {
+			return -1 // Remove control characters
+		}
+		return r
+	}, s)
+}
+
+// sanitizeForLogging sanitizes input for safe logging
+func sanitizeForLogging(s string) string {
+	if s == "" {
+		return "<empty>"
+	}
+	return sanitizeControlChars(s)
 }
 
 func main() {
